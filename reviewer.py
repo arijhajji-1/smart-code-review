@@ -4,6 +4,7 @@ import subprocess
 from datetime import datetime
 from dotenv import load_dotenv
 from groq import Groq
+from memory import save_review
 
 load_dotenv()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
@@ -115,10 +116,21 @@ Use ALL THREE to give a complete review in this format:
     ai_feedback = response.choices[0].message.content
     print(ai_feedback)
 
+    # Save to file
     report_name = save_report(filepath, linter_output, complexity_output, ai_feedback)
     print(f"\n💾 Report saved to: {report_name}")
+
+    # Save to vector memory
+    save_review(
+        filename=os.path.basename(filepath),
+        ai_feedback=ai_feedback,
+        flake8_output=linter_output,
+        complexity_output=complexity_output
+    )
 
 # --- Run: accept any file as argument ---
 if __name__ == "__main__":
     target = sys.argv[1] if len(sys.argv) > 1 else "sample_code.py"
     review_code(target)
+
+
