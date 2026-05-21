@@ -1,0 +1,94 @@
+AI CODE REVIEW REPORT
+=====================
+File    : sample_code.py
+Date    : 2026-05-21 12:08:43
+
+--- FLAKE8 LINTER ---
+sample_code.py:2:1: F401 'sys' imported but unused
+sample_code.py:3:1: F811 redefinition of unused 'os' from line 1
+sample_code.py:3:1: F401 'os' imported but unused
+sample_code.py:5:1: E302 expected 2 blank lines, found 1
+sample_code.py:5:16: E231 missing whitespace after ','
+sample_code.py:5:18: E231 missing whitespace after ','
+sample_code.py:16:19: E225 missing whitespace around operator
+sample_code.py:21:1: E302 expected 2 blank lines, found 1
+sample_code.py:24:20: E711 comparison to None should be 'if cond is not None:'
+sample_code.py:28:1: E305 expected 2 blank lines after class or function definition, found 1
+sample_code.py:30:1: E302 expected 2 blank lines, found 1
+sample_code.py:31:9: W292 no newline at end of file
+
+--- COMPLEXITY ANALYSIS ---
+sample_code.py
+    F 5:0 calculate - B (7)
+    F 21:0 process_data - A (3)
+    F 30:0 unused_function - A (1)
+
+3 blocks (classes, functions, methods) analyzed.
+Average complexity: A (3.6666666666666665)
+
+--- AI REVIEW ---
+🐛 BUGS & ERRORS:
+- Line 8: The `divide` operation does not raise an exception when dividing by zero, instead returning `None`.
+- Line 12: The `calculate` function does not raise an exception when an unknown operation is provided, instead returning `None`.
+- Line 23: The `process_data` function does not handle non-numeric data, which may cause a TypeError.
+
+⚠️ BAD PRACTICES:
+- Line 1-3: Duplicate import of `os` module.
+- Line 2: Unused import of `sys` module.
+- Line 3: Unused import of `os` module.
+- Line 5: Missing whitespace after commas in the function definition.
+- Line 5-6: Expected 2 blank lines before the function definition, but only one was found.
+- Line 8: Comparison to `None` should be done using `is not None`.
+- Line 16: Missing whitespace around operator.
+- Line 21-22: Expected 2 blank lines before and after the function definition, but only one was found.
+- Line 28-30: Expected 2 blank lines after the function definition, but only one was found.
+- Line 30-31: Unused function `unused_function`.
+- Line 31: No newline at the end of the file.
+
+🔒 SECURITY ISSUES:
+- Line 26: Hardcoded secret password.
+
+📊 COMPLEXITY:
+- The `calculate` function has a complexity of B (7), which is relatively high due to the multiple conditionals. It could be simplified using a dictionary-based approach.
+
+✅ SUGGESTIONS:
+- Remove duplicate and unused imports.
+- Use a dictionary to simplify the `calculate` function. For example:
+```python
+def calculate(x, y, operation):
+    operations = {
+        "add": lambda a, b: a + b,
+        "subtract": lambda a, b: a - b,
+        "multiply": lambda a, b: a * b,
+        "divide": lambda a, b: a / b if b != 0 else None,
+        "power": lambda a, b: a ** b
+    }
+    return operations.get(operation)(x, y)
+```
+- Raise exceptions instead of returning `None` for invalid operations and division by zero.
+```python
+def calculate(x, y, operation):
+    operations = {
+        "add": lambda a, b: a + b,
+        "subtract": lambda a, b: a - b,
+        "multiply": lambda a, b: a * b,
+        "divide": lambda a, b: a / b if b != 0 else ValueError("Cannot divide by zero!"),
+        "power": lambda a, b: a ** b
+    }
+    if operation not in operations:
+        raise ValueError("Invalid operation!")
+    return operations[operation](x, y)
+```
+- Use `is not None` for comparisons to `None`.
+- Use `enumerate` instead of `range(len(data))`.
+```python
+def process_data(data):
+    result = []
+    for i, value in enumerate(data):
+        if value is not None:
+            result.append(value * 2)
+    return result
+```
+- Remove the unused function `unused_function`.
+- Add a newline at the end of the file.
+- Avoid hardcoding secrets and use a secure method for storing and retrieving them.
