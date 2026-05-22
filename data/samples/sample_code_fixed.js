@@ -1,4 +1,4 @@
-```javascript
+
 // Removed hardcoded secret, consider using environment variables instead
 // To fix: use a secure method to store and retrieve sensitive information
 const password = process.env.PASSWORD;
