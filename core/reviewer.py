@@ -1,95 +1,70 @@
 import os
 import sys
-import subprocess
-from datetime import datetime
 from dotenv import load_dotenv
 from groq import Groq
-from memory import save_review
+from core.tools import run_tools
+from core.memory import save_review
+from datetime import datetime
 
 load_dotenv()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-# --- TOOL 1: Read the file ---
+
 def read_code_file(filepath):
-    with open(filepath, "r") as f:
+    with open(filepath, "r", encoding="utf-8") as f:
         return f.read()
 
-# --- TOOL 2: Run flake8 linter ---
-def run_flake8(filepath):
-    result = subprocess.run(
-        ["flake8", filepath],
-        capture_output=True,
-        text=True
-    )
-    output = result.stdout.strip()
-    return output if output else "No flake8 issues found."
 
-# --- TOOL 3: Run radon complexity ---
-def run_radon(filepath):
-    result = subprocess.run(
-        ["radon", "cc", filepath, "-s", "-a"],
-        capture_output=True,
-        text=True
-    )
-    output = result.stdout.strip()
-    return output if output else "No complexity issues found."
-
-# --- TOOL 4: Save report to file ---
-def save_report(filepath, flake8_output, complexity_output, ai_feedback):
+def save_report(filepath, language, linter, complexity, ai_feedback):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     filename = os.path.basename(filepath)
-    report_name = f"report_{filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-
+    report_name = os.path.join(
+        "data", "reports",
+        f"report_{filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    )
     report = f"""
 AI CODE REVIEW REPORT
 =====================
-File    : {filename}
-Date    : {timestamp}
+File     : {filename}
+Language : {language}
+Date     : {timestamp}
 
---- FLAKE8 LINTER ---
-{flake8_output}
+--- LINTER ---
+{linter}
 
---- COMPLEXITY ANALYSIS ---
-{complexity_output}
+--- COMPLEXITY ---
+{complexity}
 
 --- AI REVIEW ---
 {ai_feedback}
 """
     with open(report_name, "w", encoding="utf-8") as f:
-        f.write(report.strip())
-
+        f.write(report)
     return report_name
 
-# --- AGENT ---
+
 def review_code(filepath):
     if not os.path.exists(filepath):
         print(f"❌ File not found: {filepath}")
         sys.exit(1)
 
-    print(f"📂 Reading {filepath}...")
+    print(f"\n📂 Reading {filepath}...")
     code = read_code_file(filepath)
 
-    print("🔍 Running flake8 linter...")
-    linter_output = run_flake8(filepath)
-    print(f"{linter_output}\n")
+    language, linter_output, complexity_output = run_tools(filepath)
 
-    print("📊 Running complexity analysis...")
-    complexity_output = run_radon(filepath)
-    print(f"{complexity_output}\n")
-
-    print("🤖 Sending everything to AI...\n")
+    print("🤖 Sending to AI...\n")
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[
             {
                 "role": "system",
-                "content": """You are an expert Python code reviewer.
+                "content": f"""You are an expert {language} code reviewer.
 You will receive:
-1. The raw source code
-2. Real flake8 linter output
-3. Radon complexity scores (A=simple, F=very complex)
+1. The source code
+2. Static analysis output (linter + complexity if available)
 
-Use ALL THREE to give a complete review in this format:
+Give a complete review in this format:
 
 🐛 BUGS & ERRORS:
 - list each bug with line number
@@ -101,14 +76,14 @@ Use ALL THREE to give a complete review in this format:
 - list each security issue
 
 📊 COMPLEXITY:
-- list functions that are too complex and why
+- list functions that are too complex
 
 ✅ SUGGESTIONS:
-- list each fix with example code where helpful"""
+- list each fix with example code"""
             },
             {
                 "role": "user",
-                "content": f"CODE:\n{code}\n\nFLAKE8:\n{linter_output}\n\nCOMPLEXITY:\n{complexity_output}"
+                "content": f"CODE:\n{code}\n\nLINTER:\n{linter_output}\n\nCOMPLEXITY:\n{complexity_output}"
             }
         ]
     )
@@ -116,21 +91,15 @@ Use ALL THREE to give a complete review in this format:
     ai_feedback = response.choices[0].message.content
     print(ai_feedback)
 
-    # Save to file
-    report_name = save_report(filepath, linter_output, complexity_output, ai_feedback)
+    report_name = save_report(
+        filepath, language,
+        linter_output, complexity_output, ai_feedback
+    )
     print(f"\n💾 Report saved to: {report_name}")
 
-    # Save to vector memory
     save_review(
         filename=os.path.basename(filepath),
         ai_feedback=ai_feedback,
         flake8_output=linter_output,
         complexity_output=complexity_output
     )
-
-# --- Run: accept any file as argument ---
-if __name__ == "__main__":
-    target = sys.argv[1] if len(sys.argv) > 1 else "sample_code.py"
-    review_code(target)
-
-
