@@ -9,8 +9,8 @@ from core.tools import run_tools
 from core.memory import save_review
 
 load_dotenv()
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-
+def get_client():
+    return Groq(api_key=os.getenv("GROQ_API_KEY"))
 app = FastAPI()
 
 # Allow React frontend to talk to this API
@@ -37,7 +37,7 @@ async def review_code(file: UploadFile = File(...)):
 
     # Stream the AI response
     def stream_review():
-        stream = client.chat.completions.create(
+        stream = get_client().chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
                 {
@@ -103,7 +103,7 @@ async def search_reviews_endpoint(q: str):
         return {"results": "No matching reviews found."}
 
     # Pass through LLM for a smart answer
-    response = client.chat.completions.create(
+    response = get_client().chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[
             {
