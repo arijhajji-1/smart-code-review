@@ -55,4 +55,3 @@ function processData(data) {
 // Removed the unused variable to prevent code clutter
 
 console.log(calculate(x, 1, "divide"));  // Avoid dividing by zero
-```
