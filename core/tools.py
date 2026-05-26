@@ -36,14 +36,17 @@ def run_radon(filepath):
 
 
 def run_eslint(filepath):
-    # Use eslint.cmd on Windows
     eslint_cmd = "eslint.cmd" if os.name == "nt" else "eslint"
-    result = subprocess.run(
-        [eslint_cmd, filepath, "--format", "compact"],
-        capture_output=True,
-        text=True
-    )
-
+    try:
+        result = subprocess.run(
+            [eslint_cmd, filepath, "--format", "compact"],
+            capture_output=True,
+            text=True
+        )
+        output = result.stdout.strip()
+        return output if output else "No ESLint issues found."
+    except FileNotFoundError:
+        return "ESLint not installed — using LLM analysis only."
 
 def run_tools(filepath):
     language = detect_language(filepath)
